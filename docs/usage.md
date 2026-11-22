@@ -24,7 +24,9 @@ SSH agent forwarding and host-key-check bypasses are not enabled.
 Use explicit `--sources` for external/mobile devices excluded by the default managed set.
 `--source` identifies the current machine; it does not move execution to that host.
 
-Default networks are `mesh,endpoint`. Use `--networks lan` for declared LAN addresses.
+Default networks are `mesh,endpoint`. Defaults are three packets, a one-second
+reply timeout, eight concurrent probes per source and four SSH sources at once.
+Use `--timeout`, `--workers`, `--ssh-workers`, and `--sources` to control scan cost. Use `--networks lan` for declared LAN addresses.
 Mesh probes follow current routing, including configured relays. Endpoint probes test
 ICMP to the resolved endpoint, not its AWG UDP port. An endpoint routed through mesh is
 flagged and excluded from exploratory direct-edge recommendations.
@@ -39,7 +41,7 @@ On Android, OS/VPN policy can prevent ping or tunnel inspection; this is unknown
 ## Recommendations
 
 `recommend` evaluates simple paths up to three hops by default (maximum four), using
-fresh observations from the same topology hash. Default maximum age is five minutes.
+fresh observations from the same topology hash. Default maximum age is fifteen minutes.
 Known direct mesh legs require successful probes initiated in both directions and
 matching configured direct paths; observed route conflicts exclude the leg.
 Sort order is estimated loss, summed conservative leg RTT, then hop count.
@@ -67,6 +69,7 @@ prefixes. After deployment, measure the complete path in both directions.
 All commands support `--json`; errors are JSON on stderr and exit status 2.
 Probe failures are data, not command failures. Scan collection failures produce empty
 source observations with an error, not a row of unreachable destinations.
-TUI arrows select a source; j/k scroll destinations; q exits. Saved observations are
+TUI arrows select a source; r toggles relay recommendations; Tab changes the
+recommendation target; j/k scroll; q exits. Saved observations are
 static: rerun scan to refresh them. `status` is the noninteractive equivalent.
 Use `recommend --json` for machine-readable candidates and their required changes.

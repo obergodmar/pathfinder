@@ -200,6 +200,12 @@ class Adapters(unittest.TestCase):
     with patch("pathfinder.probes.run", return_value=(0, json.dumps({"source": "wrong"}), "")):
       self.assertEqual(remote_probe(topology, "alpha", [], ["mesh"])["status"], "collection_failed")
 
+  def test_narrow_terminal_preserves_route(self):
+    topology = fixture()
+    topology.hosts["alpha"]["peers"] = [{"name": "beta", "allowed_ips": ["10.0.0.0/24"]}]
+    output = lines(topology, [], width=80)
+    self.assertIn("  alpha -> beta -> delta [configured]", output)
+
   def test_empty_tui_and_small_data(self):
     self.assertIn("No hosts", lines(Topology({"schema_version": 1, "hosts": {}}), []))
     self.assertTrue(any("unmeasured" in line for line in lines(fixture(), [])))

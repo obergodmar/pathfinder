@@ -80,7 +80,7 @@ class Topology:
     }
 
 
-def valid_measurements(topology, snapshots, max_age=300, now=None):
+def valid_measurements(topology, snapshots, max_age=900, now=None):
   now = time.time() if now is None else now
   records = {}
   rejected = []
@@ -106,7 +106,7 @@ def valid_measurements(topology, snapshots, max_age=300, now=None):
   return {key: result for key, (_, result) in records.items()}, rejected
 
 
-def candidates(topology, snapshots, source, target, max_hops=3, limit=10, max_age=300):
+def candidates(topology, snapshots, source, target, max_hops=3, limit=10, max_age=900):
   """Rank simple paths; require independently measured directed legs both ways.
 
   RTT sums are estimates, not measured end-to-end latency. Transit ACLs and
@@ -147,7 +147,10 @@ def candidates(topology, snapshots, source, target, max_hops=3, limit=10, max_ag
     edges[left, right] = {
       "rtt_ms": max(result["rtt_ms"], back["rtt_ms"]),
       "loss": max(result["loss"], back["loss"]),
-      "runtime_verified": result.get("runtime_peer") == right and back.get("runtime_peer") == left,
+      "runtime_verified": result.get("runtime_peer") == right
+      and back.get("runtime_peer") == left
+      and result.get("route", {}).get("status") == "observed"
+      and back.get("route", {}).get("status") == "observed",
     }
 
   def enumerate_paths(edge_map, evidence_kind):

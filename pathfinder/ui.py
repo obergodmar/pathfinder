@@ -2,15 +2,16 @@
 
 import curses
 import json
+import textwrap
 
-from .model import valid_measurements
+from .model import candidates, valid_measurements
 
 
-def lines(topology, snapshots, selected=0):
+def lines(topology, snapshots, selected=0, width=120):
   names = sorted(topology.hosts)
   records, rejected = valid_measurements(topology, snapshots)
   output = [
-    "PATHFINDER | arrows: select source | j/k: scroll | q: quit",
+    "PATHFINDER | arrows: source | Tab: target | r: relays | j/k: scroll | q: quit",
     "Configured paths; measurements never imply an untested direct link.",
   ]
   if not names:
@@ -18,7 +19,7 @@ def lines(topology, snapshots, selected=0):
   source = names[selected % len(names)]
   output += [
     f"Source: {source} | fresh observations: {len(records)} | rejected: {len(rejected)}",
-    "TARGET                  MESH          RTT ms   DIRECT / ENDPOINT     CONFIGURED PATH",
+    "TARGET                  MESH          RTT ms   DIRECT / ENDPOINT",
   ]
   for target in names:
     if target == source:
@@ -32,11 +33,15 @@ def lines(topology, snapshots, selected=0):
     direct = "configured" if path["nodes"] == [source, target] else "disabled"
     if endpoint:
       direct += "/" + endpoint.get("status", "unknown")
-    output.append(
-      f"{target:23} {status:13} {probe.get('rtt_ms', '-')!s:8} "
-      + f"{direct:21} "
-      + " -> ".join(path["nodes"])
-      + f" [{path['status']}]"
+    output.append(f"{target:23} {status:13} {probe.get('rtt_ms', '-')!s:8} " + direct)
+    output.extend(
+      textwrap.wrap(
+        " -> ".join(path["nodes"]) + f" [{path['status']}]",
+        width=max(10, width - 1),
+        initial_indent="  ",
+        subsequent_indent="    ",
+        break_long_words=True,
+      )
     )
   errors = [f"{s.get('source')}: {s['error']}" for s in snapshots if s.get("error")]
   return output + ["", "Collection errors:"] + errors if errors else output
@@ -55,11 +60,39 @@ def tui(topology, snapshots):
       curses.init_pair(2, curses.COLOR_RED, -1)
       curses.init_pair(3, curses.COLOR_YELLOW, -1)
     selected = 0
+    target_index = 0
+    show_relays = False
     offset = 0
     while True:
       window.erase()
       height, width = window.getmaxyx()
-      content = lines(topology, snapshots, selected)
+      content = lines(topology, snapshots, selected, width)
+      names = sorted(topology.hosts)
+      if show_relays and len(names) > 1:
+        source = names[selected % len(names)]
+        targets = [name for name in names if name != source]
+        target = targets[target_index % len(targets)]
+        report = candidates(topology, snapshots, source, target)
+        content = [
+          content[0],
+          "Measured legs are estimates; forwarding remains unverified.",
+          f"Relay candidates: {source} -> {target} (Tab changes target)",
+          "LOSS     RTT ms   EVIDENCE / PATH",
+        ]
+        for item in report["candidates"] + report["exploratory_candidates"]:
+          content.append(
+            f"{item['estimated_loss']:7.1%}  {item['estimated_rtt_ms']:7}  {item['evidence']}"
+          )
+          content.extend(
+            textwrap.wrap(
+              " -> ".join(item["path"]),
+              width=max(10, width - 1),
+              initial_indent="  ",
+              subsequent_indent="    ",
+            )
+          )
+        if len(content) == 4:
+          content.append("No measured candidates. Run scan and pass --measurements.")
       visible = content[:4] + content[4 + offset :]
       for row, text in enumerate(visible[: max(0, height - 1)]):
         try:
@@ -83,6 +116,12 @@ def tui(topology, snapshots):
         offset = 0
       elif key in (curses.KEY_LEFT, curses.KEY_UP):
         selected -= 1
+        offset = 0
+      elif key == ord("r"):
+        show_relays = not show_relays
+        offset = 0
+      elif key == 9:
+        target_index += 1
         offset = 0
       elif key == ord("j"):
         offset = min(offset + 1, max(0, len(content) - 5))

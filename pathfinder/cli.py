@@ -46,14 +46,14 @@ def parser():
         "--networks", default="mesh,endpoint", help="Comma-separated mesh,endpoint,lan"
       )
       sub.add_argument("--count", type=bounded(1, 20), default=3)
-      sub.add_argument("--timeout", type=bounded(1, 10), default=3)
-      sub.add_argument("--workers", type=bounded(1, 16), default=4)
+      sub.add_argument("--timeout", type=bounded(1, 10), default=1)
+      sub.add_argument("--workers", type=bounded(1, 16), default=8)
       sub.add_argument("--output", help="Save JSON snapshot/report")
     if name == "scan":
       sub.add_argument(
         "--sources", nargs="+", help="Hosts to query over SSH; defaults to all managed hosts"
       )
-      sub.add_argument("--ssh-workers", type=bounded(1, 8), default=2)
+      sub.add_argument("--ssh-workers", type=bounded(1, 8), default=4)
     if name in ("recommend", "tui", "status"):
       sub.add_argument("--measurements", help="JSON output from probe or scan")
     if name == "recommend":
@@ -61,7 +61,7 @@ def parser():
       sub.add_argument("target")
       sub.add_argument("--max-hops", type=bounded(1, 4), default=3)
       sub.add_argument("--limit", type=bounded(1, 50), default=10)
-      sub.add_argument("--max-age", type=bounded(1, 86400), default=300)
+      sub.add_argument("--max-age", type=bounded(1, 86400), default=900)
   return root
 
 
