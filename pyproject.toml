@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mesh-pathfinder"
+version = "0.1.0"
+description = "Explain declared mesh routes and rank measured relay candidates"
+requires-python = ">=3.11"
+
+[project.scripts]
+pathfinder = "pathfinder.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["pathfinder*"]
+
+[tool.ruff]
+line-length = 100
+indent-width = 2
+
+[tool.ruff.format]
+indent-style = "space"
